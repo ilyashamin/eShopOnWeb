@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using Ardalis.GuardClauses;
+using Azure.Messaging.ServiceBus;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -22,6 +23,9 @@ public class CheckoutModel : PageModel
     private string? _username = null;
     private readonly IBasketViewModelService _basketViewModelService;
     private readonly IAppLogger<CheckoutModel> _logger;
+
+    private const string _asbConnectionString = "Endpoint=sb://ishwebappasb.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=2PMnrGwujyD82yboKH0UvB4aZ0cqPiKwg+ASbIR4Hl0=";
+    private const string _asbQueueName = "orders-queue";
 
     private const string _apiUrl = "https://ishfunctionwebapp.azurewebsites.net/api/";
     //private const string _apiUrl = "http://localhost:7213/api/";
@@ -62,6 +66,19 @@ public class CheckoutModel : PageModel
             await _basketService.SetQuantities(BasketModel.Id, updateModel);
             var order = await _orderService.CreateOrderAsync(BasketModel.Id, new Address("123 Main St.", "Kent", "OH", "United States", "44240"));
             await _basketService.DeleteBasketAsync(BasketModel.Id);
+
+            await using var client = new ServiceBusClient(_asbConnectionString);
+            await using var sender = client.CreateSender(_asbQueueName);
+            try
+            {
+                var message = new ServiceBusMessage(JsonSerializer.Serialize(items));
+                await sender.SendMessageAsync(message);
+            }
+            finally
+            {
+                await sender.DisposeAsync();
+                await client.DisposeAsync();
+            }
 
             OrderJson jsonOrder = new OrderJson(order);
             var createOrderApiClient = new OrderApiClient(_createOrderFunctionUrl);

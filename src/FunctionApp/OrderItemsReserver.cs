@@ -1,6 +1,4 @@
-﻿using System;
-using Azure.Messaging.ServiceBus;
-using Microsoft.Azure.Functions.Worker;
+﻿using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
@@ -56,6 +54,8 @@ public class OrderItemsReserver
 
     public class ServiceBusException : Exception
     {
-        public ServiceBusException(string message) : base(message) { }
+        public ServiceBusException(string message) : base(message)
+        {
+        }
     }
 }
